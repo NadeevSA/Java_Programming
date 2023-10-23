@@ -6,13 +6,19 @@ public class cross {
 
     // 3. Определяем размеры массива
     static final int SIZE_X = 5;
-    static final int SIZE_Y = 3;
+    static final int SIZE_Y = 5;
 
     // Количества ячеек для победы
-    static final int WIN_LINE = 3;
+    static final int WIN_LINE = 4;
 
     // 1. Создаем двумерный массив
     static char[][] field = new char[SIZE_Y][SIZE_X];
+
+    static int[][] heat_map_player = new int[SIZE_Y][SIZE_X];
+    static int[][] heat_map_ai = new int[SIZE_Y][SIZE_X];
+
+    static int stepX = 0;
+    static int stepY = 0;
 
     // 2. Обозначаем кто будет ходить какими фишками
     static final char PLAYER_DOT = 'X';
@@ -22,7 +28,6 @@ public class cross {
     // 8. Создаем сканер
     static Scanner scanner = new Scanner(System.in);
     // 12. Создаем рандом
-    static final Random rand = new Random();
 
     // 4. Заполняем на массив
     private static void initField() {
@@ -49,98 +54,222 @@ public class cross {
     }
 
     // 7. Метод который устанавливает символ
-    private static void setSym(int y, int x, char sym){
+    private static void setSym(int y, int x, char sym) {
         field[y][x] = sym;
     }
 
     // 9. Ход игрока
     private static void playerStep() {
         // 11. с проверкой
-        int x;
-        int y;
         do {
-            System.out.println("Введите координаты: X Y (1-3)");
-            x = scanner.nextInt() - 1;
-            y = scanner.nextInt() - 1;
-        } while (!isCellValid(y,x));
-        setSym(y, x, PLAYER_DOT);
+            System.out.println("Введите координаты: X Y (" + SIZE_X + "-" + SIZE_Y + ")");
+            stepX = scanner.nextInt() - 1;
+            stepY = scanner.nextInt() - 1;
+        } while (!isCellValid(stepY,stepX));
+        setSym(stepY, stepX, PLAYER_DOT);
 
     }
 
     // 13. Ход ПК
     private static void aiStep() {
-        int x;
-        int y;
-        do{
-            x = rand.nextInt(SIZE_X);
-            y = rand.nextInt(SIZE_Y);
-        } while(!isCellValid(y,x));
-        setSym(y, x, AI_DOT);
+        var high_cells_nearby_player = Integer.MIN_VALUE;
+        var ip = 0;
+        var jp = 0;
+        for (int i = 0; i < SIZE_Y; ++i) {
+            for (int j = 0; j < SIZE_X; ++j) {
+                if (isCellValid(i,j) && high_cells_nearby_player < heat_map_player[i][j]) {
+                    high_cells_nearby_player = heat_map_player[i][j];
+                    ip = i;
+                    jp = j;
+                }
+            }
+        }
+
+        var high_cells_nearby_ai = Integer.MIN_VALUE;
+        var ia = 0;
+        var ja = 0;
+        for (int i = 0; i < SIZE_Y; ++i) {
+            for (int j = 0; j < SIZE_X; ++j) {
+                if (isCellValid(i,j) && high_cells_nearby_ai < heat_map_ai[i][j]) {
+                    high_cells_nearby_ai = heat_map_ai[i][j];
+                    ia = i;
+                    ja = j;
+                }
+            }
+        }
+
+        if (high_cells_nearby_player > high_cells_nearby_ai){
+            setSym(ip, jp, AI_DOT);
+            stepX = jp;
+            stepY = ip;
+        }
+        else{
+            setSym(ia, ja, AI_DOT);
+            stepX = ja;
+            stepY = ia;
+        }
+    }
+
+    private static boolean checkVertical(char sym, int[][] heat_map) {
+        // наверх
+        var count = 1;
+        var y = stepY;
+
+        // вниз
+        for (int i = stepY - 1; i >= 0; --i) {
+            if (field[i][stepX] == sym) {
+                count++;
+            } else {
+                y = i;
+                break;
+            }
+        }
+
+        // вниз
+        var y1 = stepY;
+        for (int i = stepY + 1; i < SIZE_Y; ++i) {
+            if (field[i][stepX] == sym) {
+                count++;
+            } else {
+                y1 = i;
+                break;
+            }
+        }
+
+        heat_map[y][stepX] = Math.max(heat_map[y][stepX], count);
+        heat_map[y1][stepX] = Math.max(heat_map[y1][stepX], count);
+
+        return WIN_LINE == count;
+    }
+
+    private static boolean checkHorizontal(char sym, int[][] heat_map) {
+        var count = 1;
+        var x = stepX;
+
+        // влево
+        for (int i = stepX + 1; i < SIZE_X; ++i) {
+            if (field[stepY][i] == sym) {
+                count++;
+            } else {
+                x = i;
+                break;
+            }
+        }
+
+        // вправо
+        var x1 = stepX;
+        for (int i = stepX - 1; i >= 0; --i) {
+            if (field[stepY][i] == sym) {
+                count++;
+            } else {
+                x1 = i;
+                break;
+            }
+        }
+
+        heat_map[stepY][x] = Math.max(heat_map[stepY][x], count);
+        heat_map[stepY][x1] = Math.max(heat_map[stepY][x1], count);
+
+        return WIN_LINE == count;
+    }
+
+    private static boolean checkMainDiagonal(char sym, int[][] heat_map) {
+        var count = 1;
+        var x = stepX;
+        var y = stepY;
+
+        for (int i = stepX - 1, j = stepY - 1; i >= 0 && j >= 0; --i, --j) {
+            if (field[j][i] == sym) {
+                count++;
+            } else {
+                x = i;
+                y = j;
+                break;
+            }
+            if (i == 0 || j == 0) {
+                x = i;
+                y = j;
+                break;
+            }
+        }
+
+        var x1 = stepX;
+        var y1 = stepY;
+        for (int i = stepX + 1, j = stepY + 1; i < SIZE_X && j < SIZE_Y; ++i, ++j) {
+            if (field[j][i] == sym) {
+                count++;
+            }
+            else {
+                x1 = i;
+                y1 = j;
+                break;
+            }
+            if (i == SIZE_X - 1 || j == SIZE_Y - 1){
+                x1 = i;
+                y1 = j;
+                break;
+            }
+        }
+
+        heat_map[y][x] = Math.max(heat_map[y][x], count);
+        heat_map[y1][y1] = Math.max(heat_map[y1][x1], count);
+
+        return WIN_LINE == count;
+    }
+
+    private static boolean checkMinorDiagonal(char sym, int[][] heat_map) {
+        var count = 1;
+        var x = stepX;
+        var y = stepY;
+        for (int i = stepX - 1, j = stepY + 1; i >= 0 && j < SIZE_Y; --i, ++j) {
+            if (field[j][i] == sym) {
+                count++;
+            }
+            else {
+                x = i;
+                y = j;
+                break;
+            }
+            if (i == 0 || j == SIZE_Y - 1) {
+                x = i;
+                y = j;
+                break;
+            }
+        }
+
+        var x1 = stepX;
+        var y1 = stepY;
+        for (int i = stepX + 1, j = stepY - 1; i < SIZE_X && j >= 0; ++i, --j) {
+            if (field[j][i] == sym) {
+                count++;
+            }
+            else {
+                x1 = i;
+                y1 = j;
+                break;
+            }
+            if (i == SIZE_X - 1 || j == 0) {
+                x1 = i;
+                y1 = j;
+                break;
+            }
+        }
+
+        heat_map[y][x] = Math.max(heat_map[y][x], count);
+        heat_map[y1][x1] = Math.max(heat_map[y1][x1], count);
+
+        return WIN_LINE == count;
     }
 
     // 14. Проверка победы
-    private static boolean checkWin(char sym) {
-        var pattern = Pattern.compile(sym + "{" + WIN_LINE + "}");
+    private static boolean checkWin(char sym, int[][] heat_map) {
+        var checkHorizontal = checkHorizontal(sym, heat_map);
+        var checkVertical = checkVertical(sym, heat_map);
+        var checkMainDiagonal = checkMainDiagonal(sym, heat_map);
+        var checkMinorDiagonal = checkMinorDiagonal(sym, heat_map);
 
-        return lineCheck(pattern, (Integer i, Integer j) -> field[i][j], SIZE_Y, SIZE_X) |
-                lineCheck(pattern, (Integer i, Integer j) -> field[j][i], SIZE_X, SIZE_Y) |
-                diagonalCheck(pattern);
-    }
-
-    @FunctionalInterface
-    public interface Func2Args<T, T1, R> {
-        R apply(T t, T1 t1);
-    }
-
-    private static boolean lineCheck(Pattern pattern, Func2Args<Integer, Integer, Character> func2Args, int n, int m){
-        var stringBuilder = new StringBuilder(Math.max(n, m));
-
-        for (int i = 0; i < n; ++i){
-            stringBuilder.setLength(0);
-
-            for (int j = 0; j < m; ++j){
-                stringBuilder.append(func2Args.apply(i, j));
-            }
-
-            if (pattern.matcher(stringBuilder).find()) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static boolean diagonalCheck(Pattern pattern){
-        var stringBuilder = new StringBuilder(Math.max(SIZE_X, SIZE_Y));
-        var min = Math.min(SIZE_X, SIZE_Y);
-
-        for (int i = min - 1; i >= 0; --i){
-            var current_i = i;
-            stringBuilder.setLength(0);
-
-            for (int j = 0; current_i < min; ++j, ++current_i){
-                stringBuilder.append(field[current_i][j]);
-            }
-
-            if (pattern.matcher(stringBuilder).find()) {
-                return true;
-            }
-        }
-
-        for (int i = 0; i < min; ++i){
-            var current_i = i;
-            stringBuilder.setLength(0);
-
-            for (int j = 0; current_i >= 0; ++j, --current_i){
-                stringBuilder.append(field[j][current_i]);
-            }
-
-            if (pattern.matcher(stringBuilder).find()) {
-                return true;
-            }
-        }
-
-        return false;
+        heat_map[stepY][stepX] = -1;
+        return checkHorizontal || checkMainDiagonal || checkVertical || checkMinorDiagonal;
     }
 
     // 16. Проверка полное ли поле? возможно ли ходить?
@@ -176,7 +305,7 @@ public class cross {
         while (true) {
             playerStep();
             printField();
-            if(checkWin(PLAYER_DOT)) {
+            if(checkWin(PLAYER_DOT, heat_map_player)) {
                 System.out.println("Player WIN!");
                 break;
             }
@@ -187,7 +316,7 @@ public class cross {
 
             aiStep();
             printField();
-            if(checkWin(AI_DOT)) {
+            if(checkWin(AI_DOT, heat_map_ai)) {
                 System.out.println("Win SkyNet!");
                 break;
             }
@@ -195,7 +324,6 @@ public class cross {
                 System.out.println("DRAW!");
                 break;
             }
-        }/**/
-
+        }
     }
 }
