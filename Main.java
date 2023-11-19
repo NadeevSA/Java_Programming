@@ -1,43 +1,32 @@
+package maraphon;
+
+import java.util.ArrayList;
+
 public class Main {
     public static void main(String[] args) {
-        String[][] array = {
-            {"1", "2", "3", "4"},
-            {"5", "6", "7", "8"},
-            {"9", "1", "2", "3"},
-            {"4", "5", "6", "7"},
+        ArrayList<Animal> animals = new ArrayList<Animal>();
+        animals.add(new Dolphin("Yappy", 2, 800));
+        animals.add(new Dolphin("Gimmy", 1.6, 920));
+        animals.add(new Dog("Gromp", 1.2, 440));
+        animals.add(new Dog("Richard", 1.0, 400));
+        animals.add(new Monkey("Sally", 0.8, 320, 250));
+        animals.add(new Monkey("Sunshine", 1.2, 250, 250));
+
+        ArrayList<MaraphonType>[] maraphonTypes = new ArrayList[] {
+                new ArrayList<MaraphonType>(),
+                new ArrayList<MaraphonType>(),
+                new ArrayList<MaraphonType>(),
         };
+        maraphonTypes[0].add(MaraphonType.Run);
+        maraphonTypes[0].add(MaraphonType.Jump);
+        maraphonTypes[1].add(MaraphonType.Run);
+        maraphonTypes[1].add(MaraphonType.Swim);
+        maraphonTypes[2].add(MaraphonType.Jump);
+        maraphonTypes[2].add(MaraphonType.Swim);
 
-        try {
-            var arraySum = arraySum(array);
-
-            System.out.println(arraySum);
-        } catch (MyArraySizeException | MyArrayDataException e) {
-            System.out.println(e);
+        for (var mp : maraphonTypes) {
+            new Maraphon(mp, 350, 500, 1.1)
+                    .start(animals);
         }
-    }
-
-    public static int arraySum(String[][] array) throws MyArraySizeException, MyArrayDataException {
-        if (array.length == 4) {
-            for (int i = 0; i < array.length; i++) {
-                if (array[i].length != 4) {
-                    throw new MyArraySizeException(i, array[i].length);
-                }
-            }
-        } else {
-            throw new MyArraySizeException(array.length);
-        }
-
-        int sum = 0;
-        for (int i = 0; i < array.length; i++) {
-            for (int j = 0; j < array[i].length; j++) {
-                try {
-                    sum += Integer.parseInt(array[i][j]);
-                }
-                catch (NumberFormatException e) {
-                    throw new MyArrayDataException(j, i);
-                }
-            }
-        }
-        return sum;
     }
 }
